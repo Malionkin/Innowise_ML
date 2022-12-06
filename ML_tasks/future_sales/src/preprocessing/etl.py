@@ -82,6 +82,6 @@ class etl():
 
 
 process = etl()
-data = a.extract_data()
-imm_data = a.transform_data(data)
+data = process.extract_data()
+imm_data = process.transform_data(data)
 process.load(imm_data)
