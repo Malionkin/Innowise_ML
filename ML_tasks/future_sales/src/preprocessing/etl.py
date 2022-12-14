@@ -4,12 +4,14 @@ import numpy as np
 import os
 
 
-class etl():
+class ETL():
     """This class provides the extract-transform-load process
 
         Includes 3 methods (1 for each step of ETL-process)
     """
 
+    MAX_PRICE = 178179
+    MAX_CNT = 250
     def extract_data(self):
         """Extracting provided data from several files"""
 
@@ -28,8 +30,8 @@ class etl():
         self.data = data
         def filter_no_neg_price(df): return (df.item_price > 0)
         #def filter_no_returns(df): return (df.item_cnt_day >= 0)
-        def filter_outliers__price(df): return (df.item_price < 178179)
-        def filter_outliers__cnt(df): return (df.item_cnt_day < 250)
+        def filter_outliers__price(df): return (df.item_price < MAX_PRICE)
+        def filter_outliers__cnt(df): return (df.item_cnt_day < MAX_CNT)
 
         etl__filter_registry = {
             'sales_train': [
