@@ -2,16 +2,20 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 import os
+from sklearn.preprocessing import LabelEncoder
+from IPython.display import display
+from itertools import product
+import tasks_for_transform as t
 
 
 class ETL():
     """This class provides the extract-transform-load process
-
         Includes 3 methods (1 for each step of ETL-process)
     """
 
-    MAX_PRICE = 178179
+    MAX_PRICE = 40000
     MAX_CNT = 250
+
     def extract_data(self):
         """Extracting provided data from several files"""
 
@@ -25,7 +29,7 @@ class ETL():
             data[file.split('.')[0]] = pd.read_csv(path)
         return data
 
-    def transform_data(self, data):
+    def clean_data(self, data):
         """transforms data according to written filters"""
         self.data = data
         def filter_no_neg_price(df): return (df.item_price > 0)
@@ -59,7 +63,34 @@ class ETL():
         imm_data = etl__apply_filters(data)
         return imm_data
 
-    def load(self, imm_data):
+    def transform_data_for_feature_engineering(self):
+        items = pd.read_csv(
+            './competitive-data-science-predict-future-sales/transformed_data/items.csv')
+        shops = pd.read_csv(
+            "./competitive-data-science-predict-future-sales/transformed_data/shops.csv")
+        cats = pd.read_csv(
+            "./competitive-data-science-predict-future-sales/transformed_data/item_categories.csv")
+        train = pd.read_csv(
+            "./competitive-data-science-predict-future-sales/transformed_data/sales_train.csv")
+        # Creating a data dictionary for later usage
+        train_data_dict = {"items": items,
+                           "shops": shops,
+                           "cats": cats,
+                           "train": train}
+        test = pd.read_csv(
+            "./competitive-data-science-predict-future-sales/transformed_data/test.csv").set_index("ID")
+        shops = t.transform_shops(shops)
+        cats = t.transform_cats(cats)
+        items = t.transform_items(items, train)
+        train = t.create_train(train, items, shops, cats)
+        test = t.create_test(test, items, shops, cats)
+        train_monthly = t.create_train_monthly(train, test)
+        train_monthly = t.creating_lag_features(train_monthly)
+        train_monthly = t.add_trends(train_monthly, train)
+        train_monthly["item_cnt"] = train_monthly["item_cnt"].clip(0, 20)
+        return train_monthly
+
+    def load_for_eda(self, imm_data):
         """Loading data into one big dataframe for easier global analytics and several small files for convinient EDA"""
 
         self.imm_data = imm_data
@@ -82,8 +113,7 @@ class ETL():
         raw_shop__df.to_csv(
             "./competitive-data-science-predict-future-sales/transformed_data/shops.csv", index=False)
 
-
-process = etl()
-data = process.extract_data()
-imm_data = process.transform_data(data)
-process.load(imm_data)
+    def load_for_modelling(self, train_monthly):
+        self.train_monthly = train_monthly
+        train_monthly.to_pickle(
+            "./competitive-data-science-predict-future-sales/transformed_data/train_monthly.pkl")
